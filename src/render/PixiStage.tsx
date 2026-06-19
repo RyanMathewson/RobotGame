@@ -62,7 +62,7 @@ export function PixiStage() {
           const t = renderer!.screenToTile(e.global.x, e.global.y);
           t.x = Math.max(0, Math.min(world.width, t.x));
           t.y = Math.max(0, Math.min(world.height, t.y));
-          input.moveToTarget = t;
+          input.clickTile = t; // sim decides: mine nearby node, or move
         });
 
         stopLoop = startGameLoop(world, input, {

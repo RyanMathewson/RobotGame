@@ -8,9 +8,17 @@
 //  - Determinism: any randomness must come from `nextRandom(world)`, never
 //    `Math.random()`, so saves/replays/offline-sim reproduce exactly.
 
-import type { Vec2, Transform, Movement, ResourceNode, ResourceKind } from './components';
+import type {
+  Vec2,
+  Transform,
+  Movement,
+  ResourceNode,
+  ResourceKind,
+  Cargo,
+  Mining,
+} from './components';
 import type { FrameInput } from './input';
-import { applyInput, movementSystem } from './systems';
+import { applyInput, movementSystem, miningSystem } from './systems';
 
 export type Entity = number;
 
@@ -31,6 +39,8 @@ export interface World {
   transform: Store<Transform>;
   movement: Store<Movement>;
   resourceNode: Store<ResourceNode>;
+  cargo: Store<Cargo>;
+  mining: Store<Mining>;
   /** tag set: entities under direct player control */
   player: Set<Entity>;
 }
@@ -44,17 +54,20 @@ export function destroyEntity(world: World, e: Entity): void {
   world.transform.delete(e);
   world.movement.delete(e);
   world.resourceNode.delete(e);
+  world.cargo.delete(e);
+  world.mining.delete(e);
   world.player.delete(e);
 }
 
 export function spawnRobot(
   world: World,
   pos: Vec2,
-  opts: { player?: boolean; speed?: number } = {},
+  opts: { player?: boolean; speed?: number; cargoCapacity?: number } = {},
 ): Entity {
   const e = createEntity(world);
   world.transform.set(e, { pos: { ...pos } });
   world.movement.set(e, { target: null, speed: opts.speed ?? 3.5 });
+  if (opts.cargoCapacity) world.cargo.set(e, { capacity: opts.cargoCapacity, items: {} });
   if (opts.player) world.player.add(e);
   return e;
 }
@@ -86,10 +99,12 @@ export function createWorld(): World {
     transform: new Map(),
     movement: new Map(),
     resourceNode: new Map(),
+    cargo: new Map(),
+    mining: new Map(),
     player: new Set(),
   };
 
-  // Scenery: a few deposits so the map reads as a place (mining lands next task).
+  // Scenery + first minable deposits.
   const nodeSpecs: Array<[ResourceKind, number, number]> = [
     ['iron', 5, 4],
     ['iron', 22, 13],
@@ -98,14 +113,17 @@ export function createWorld(): World {
     ['silica', 14, 9],
   ];
   for (const [kind, x, y] of nodeSpecs) {
-    spawnNode(world, { x, y }, kind, 500);
+    spawnNode(world, { x, y }, kind, NODE_START_AMOUNT);
   }
 
   // The player's robot, parked at center until commanded.
-  spawnRobot(world, { x: world.width / 2, y: world.height / 2 }, { player: true });
+  spawnRobot(world, { x: world.width / 2, y: world.height / 2 }, { player: true, cargoCapacity: 300 });
 
   return world;
 }
+
+/** Starting units in a fresh deposit (also the renderer's "full" reference). */
+export const NODE_START_AMOUNT = 200;
 
 // --- Tick orchestrator -------------------------------------------------------
 /** Advance the world by `dt` seconds, applying this frame's input. */
@@ -113,4 +131,5 @@ export function tickWorld(world: World, dt: number, input: FrameInput): void {
   world.tick++;
   applyInput(world, input);
   movementSystem(world, dt, input);
+  miningSystem(world, dt);
 }

@@ -22,5 +22,25 @@ export interface Movement {
 /** A minable deposit. */
 export interface ResourceNode {
   kind: ResourceKind;
+  /** units remaining; node despawns at 0 */
   amount: number;
+}
+
+/** Carried resources. `items` maps resource kind -> units held. */
+export interface Cargo {
+  capacity: number;
+  items: Partial<Record<ResourceKind, number>>;
+}
+
+/** Tag: this entity is currently mining the node with id `nodeId`. */
+export interface Mining {
+  /** Entity id of the node being mined (Entity is a number alias). */
+  nodeId: number;
+}
+
+/** Total units currently held in a cargo hold. */
+export function cargoUsed(cargo: Cargo): number {
+  let sum = 0;
+  for (const v of Object.values(cargo.items)) sum += v ?? 0;
+  return sum;
 }

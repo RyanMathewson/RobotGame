@@ -92,6 +92,11 @@ body {
   font-weight: 600;
 }
 
+.hud-dim {
+  color: var(--muted);
+  font-weight: 400;
+}
+
 .hud-note {
   margin: 12px 0 0;
   max-width: 240px;

@@ -5,6 +5,7 @@
 import type { World, Entity } from './sim/world';
 import { tickWorld } from './sim/world';
 import type { Vec2 } from './sim/components';
+import { cargoUsed } from './sim/components';
 import type { FrameInput } from './sim/input';
 
 /** Simulation rate: 30 deterministic ticks per second. */
@@ -29,6 +30,9 @@ export interface LoopStats {
   fps: number;
   robotCount: number;
   playerPos: Vec2 | null;
+  cargoUsed: number;
+  cargoCapacity: number;
+  mining: boolean;
 }
 
 export function startGameLoop(world: World, input: FrameInput, cb: LoopCallbacks): LoopHandle {
@@ -57,11 +61,16 @@ export function startGameLoop(world: World, input: FrameInput, cb: LoopCallbacks
 
     if (cb.onStats && now - lastStatsAt >= 250) {
       lastStatsAt = now;
+      const pe = firstPlayer(world);
+      const cargo = pe !== null ? world.cargo.get(pe) : undefined;
       cb.onStats({
         tick: world.tick,
         fps: Math.round(fps),
         robotCount: world.movement.size,
-        playerPos: playerPosition(world),
+        playerPos: pe !== null ? (world.transform.get(pe)?.pos ?? null) : null,
+        cargoUsed: cargo ? Math.floor(cargoUsed(cargo)) : 0,
+        cargoCapacity: cargo ? cargo.capacity : 0,
+        mining: pe !== null ? world.mining.has(pe) : false,
       });
     }
 
@@ -72,10 +81,7 @@ export function startGameLoop(world: World, input: FrameInput, cb: LoopCallbacks
   return { stop: () => cancelAnimationFrame(raf) };
 }
 
-function playerPosition(world: World): Vec2 | null {
-  for (const e of world.player) {
-    const tf = world.transform.get(e as Entity);
-    if (tf) return tf.pos;
-  }
+function firstPlayer(world: World): Entity | null {
+  for (const e of world.player) return e;
   return null;
 }

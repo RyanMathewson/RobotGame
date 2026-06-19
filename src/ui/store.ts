@@ -8,6 +8,9 @@ export interface HudState {
   fps: number;
   robotCount: number;
   playerPos: { x: number; y: number } | null;
+  cargoUsed: number;
+  cargoCapacity: number;
+  mining: boolean;
   set: (partial: Partial<Omit<HudState, 'set'>>) => void;
 }
 
@@ -16,5 +19,8 @@ export const useHud = create<HudState>((set) => ({
   fps: 0,
   robotCount: 0,
   playerPos: null,
+  cargoUsed: 0,
+  cargoCapacity: 0,
+  mining: false,
   set: (partial) => set(partial),
 }));

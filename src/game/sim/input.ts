@@ -7,12 +7,16 @@ import type { Vec2 } from './components';
 export interface FrameInput {
   /** Continuous movement axis from held keys; each component in [-1, 1]. */
   moveAxis: Vec2;
-  /** One-shot click-to-move target (tile coords). Consumed by the sim, then cleared. */
-  moveToTarget: Vec2 | null;
+  /**
+   * One-shot click in tile coords. The sim decides what it means: clicking a
+   * nearby node mines it; clicking a far node walks to it; clicking ground moves.
+   * Consumed by the sim, then cleared.
+   */
+  clickTile: Vec2 | null;
 }
 
 export function createFrameInput(): FrameInput {
-  return { moveAxis: { x: 0, y: 0 }, moveToTarget: null };
+  return { moveAxis: { x: 0, y: 0 }, clickTile: null };
 }
 
 /** Key code -> unit direction. Supports WASD and arrow keys. */
