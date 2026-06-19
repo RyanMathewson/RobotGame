@@ -111,12 +111,14 @@ export function miningSystem(world: World, dt: number): void {
     if (mv) mv.target = null;
 
     const free = cargo.capacity - cargoUsed(cargo);
-    const mined = Math.min(MINE_RATE * dt, node.amount, free);
-    if (mined <= 0) {
-      world.mining.delete(e); // cargo full or node empty
+    if (free <= EPSILON) {
+      // Cargo full: hold the mining order (robot is "blocked") rather than
+      // cancelling it, so it resumes automatically once cargo is freed. The
+      // HUD reads this state to remind the player why mining stopped.
       continue;
     }
 
+    const mined = Math.min(MINE_RATE * dt, node.amount, free);
     cargo.items[node.kind] = (cargo.items[node.kind] ?? 0) + mined;
     node.amount -= mined;
 

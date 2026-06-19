@@ -104,3 +104,29 @@ body {
   line-height: 1.4;
   color: var(--muted);
 }
+
+/* Transient reminder message, centered near the top of the screen. */
+.toast {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffe8c2;
+  background: rgba(58, 38, 14, 0.92);
+  border: 1px solid #5a3f17;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.toast-icon {
+  font-size: 0.95rem;
+}

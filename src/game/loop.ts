@@ -33,6 +33,8 @@ export interface LoopStats {
   cargoUsed: number;
   cargoCapacity: number;
   mining: boolean;
+  /** A transient reminder for the player (e.g. why mining stopped), or null. */
+  notice: string | null;
 }
 
 export function startGameLoop(world: World, input: FrameInput, cb: LoopCallbacks): LoopHandle {
@@ -63,14 +65,18 @@ export function startGameLoop(world: World, input: FrameInput, cb: LoopCallbacks
       lastStatsAt = now;
       const pe = firstPlayer(world);
       const cargo = pe !== null ? world.cargo.get(pe) : undefined;
+      const used = cargo ? cargoUsed(cargo) : 0;
+      const mining = pe !== null ? world.mining.has(pe) : false;
+      const cargoFull = cargo ? used >= cargo.capacity - 1e-6 : false;
       cb.onStats({
         tick: world.tick,
         fps: Math.round(fps),
         robotCount: world.movement.size,
         playerPos: pe !== null ? (world.transform.get(pe)?.pos ?? null) : null,
-        cargoUsed: cargo ? Math.floor(cargoUsed(cargo)) : 0,
+        cargoUsed: Math.floor(used),
         cargoCapacity: cargo ? cargo.capacity : 0,
-        mining: pe !== null ? world.mining.has(pe) : false,
+        mining,
+        notice: mining && cargoFull ? 'Cargo full — mining paused. Empty cargo to continue.' : null,
       });
     }
 

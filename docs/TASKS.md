@@ -49,7 +49,8 @@
 - [ ] Tile world + camera (pan/zoom) — *deferred; fixed centered view for now*
 - [x] Player-controlled robot (click-to-move + WASD/arrows; input modeled as data consumed by the sim)
 - [x] Resource nodes with mining: click a node → robot walks over & auto-mines on arrival, continuing
-      until interrupted (move/WASD), node exhausted, or cargo full; nodes deplete & despawn
+      until interrupted (move/WASD) or node exhausted; **full cargo pauses (robot shows "blocked" + a
+      HUD reminder) and auto-resumes when freed**; nodes deplete & despawn
       *(cheap on-pillar pressure probe, design §13.5.7)*
 
 **Production**
@@ -120,3 +121,7 @@
   HUD shows cargo + status. Build green. **In-browser confirmed.**
 - **Mining UX refined** (per user): a node click is now a *mine order* — robot walks over and auto-mines
   on arrival (one click), continuing until interrupted. Build green.
+- **Cargo-full feedback** (per user): full cargo now *holds* the mining order (robot is "blocked",
+  design §8.3) instead of silently cancelling, and surfaces a HUD reminder toast ("Cargo full — mining
+  paused…") via the sim→loop→store path; mining beam turns red while blocked. Auto-resumes once cargo
+  is freed (after Deposit lands). Build green.

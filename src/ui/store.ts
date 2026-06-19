@@ -11,6 +11,7 @@ export interface HudState {
   cargoUsed: number;
   cargoCapacity: number;
   mining: boolean;
+  notice: string | null;
   set: (partial: Partial<Omit<HudState, 'set'>>) => void;
 }
 
@@ -22,5 +23,6 @@ export const useHud = create<HudState>((set) => ({
   cargoUsed: 0,
   cargoCapacity: 0,
   mining: false,
+  notice: null,
   set: (partial) => set(partial),
 }));

@@ -4,6 +4,7 @@ import { Application, Container, Graphics } from 'pixi.js';
 import type { World, Entity } from '../game/sim/world';
 import { NODE_START_AMOUNT } from '../game/sim/world';
 import type { Vec2 } from '../game/sim/components';
+import { cargoUsed } from '../game/sim/components';
 import { RESOURCES } from '../game/data/resources';
 
 const TILE = 34;
@@ -91,15 +92,21 @@ export class WorldRenderer {
       const robot = world.transform.get(e);
       const nodeTf = world.transform.get(mining.nodeId);
       if (!robot || !nodeTf) continue;
+
+      // Blocked (cargo full) reads red; actively mining reads gold.
+      const cargo = world.cargo.get(e);
+      const blocked = cargo ? cargoUsed(cargo) >= cargo.capacity - 1e-6 : false;
+      const color = blocked ? 0xff7f7f : 0xffd27f;
+
       const nx = (nodeTf.pos.x + 0.5) * TILE;
       const ny = (nodeTf.pos.y + 0.5) * TILE;
       this.miningFx
         .moveTo(robot.pos.x * TILE, robot.pos.y * TILE)
         .lineTo(nx, ny)
-        .stroke({ color: 0xffd27f, width: 2, alpha: 0.7 });
+        .stroke({ color, width: 2, alpha: 0.7 });
       this.miningFx
         .circle(nx, ny, TILE * 0.42)
-        .stroke({ color: 0xffd27f, width: 2, alpha: pulse });
+        .stroke({ color, width: 2, alpha: blocked ? 0.9 : pulse });
     }
   }
 
