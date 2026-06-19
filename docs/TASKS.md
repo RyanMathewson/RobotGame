@@ -12,8 +12,10 @@
 
 ## 🎯 Now / Next
 
-- **Now:** Phase 1 — project scaffold (Vite + React + TS + Pixi + Zustand) building & deploying.
-- **Next:** Phase 2 — MVP vertical slice, starting with the world/sim foundation, then the robot VM.
+- **Now:** Phase 1 complete ✅ — scaffold builds & auto-deploys to Pages.
+- **Next:** Phase 2 — MVP vertical slice. Suggested order: ECS-lite entity model → player-controlled
+  robot + click-to-move → resource nodes & `Mine` → Refinery/Assembler (data-driven) → **robot VM**
+  → Blockly editor → first autonomous miner (Milestone 1) → IndexedDB save/load.
 
 ---
 
@@ -25,18 +27,18 @@
 - [x] Auto-deploy workflow (`.github/workflows/deploy.yml`) green
 - [x] Live at https://ryanmathewson.github.io/RobotGame/
 
-## Phase 1 — Project Scaffold / Foundation 🔨 (in progress)
+## Phase 1 — Project Scaffold / Foundation ✅ (complete)
 
-- [~] Vite + React + TypeScript project (`package.json`, `tsconfig`, `vite.config.ts`)
-- [~] `base: '/RobotGame/'` set for Pages subpath
-- [~] PixiJS (v8) rendering layer — canvas mounts, draws a tile grid
-- [~] Zustand store + React HUD overlay reading live sim stats
-- [~] Fixed-timestep game loop (sim ticks decoupled from render)
-- [~] Minimal world: grid + resource nodes + one wandering robot (proves loop → render → UI)
-- [~] Project folder structure mirroring design §15 (`game/sim`, `game/vm`, `game/data`, `render`, `ui`)
-- [~] Switch deploy workflow from static `site/` to `npm run build` → `dist/`
-- [ ] Verify the **built** Vite app deploys live to the same URL
-- [ ] (Later this phase) PWA manifest + service worker via `vite-plugin-pwa` — deferred to Alpha per design
+- [x] Vite + React + TypeScript project (`package.json`, `tsconfig`, `vite.config.ts`)
+- [x] `base: '/RobotGame/'` set for Pages subpath (verified in built `index.html`)
+- [x] PixiJS (v8) rendering layer — canvas mounts, draws a tile grid
+- [x] Zustand store + React HUD overlay reading live sim stats
+- [x] Fixed-timestep game loop (sim ticks decoupled from render)
+- [x] Minimal world: grid + resource nodes + one wandering robot (proves loop → render → UI)
+- [x] Project folder structure mirroring design §15 (`game/sim`, `game/vm`, `game/data`, `render`, `ui`)
+- [x] Switch deploy workflow from static `site/` to `npm run build` → `dist/`
+- [x] Verify the **built** Vite app deploys live to the same URL (HTTP 200 + JS bundle loads)
+- [-] PWA manifest + service worker via `vite-plugin-pwa` — deferred to Alpha per design
 
 ## Phase 2 — MVP Vertical Slice ⏳ (not started)
 
@@ -98,4 +100,7 @@
 
 ### 2026-06-18
 - **Phase 0 complete.** Repo created, Pages live, placeholder deployed & verified (HTTP 200).
-- **Phase 1 started.** Scaffolding Vite + React + TS + Pixi + Zustand; created this tracking doc.
+- **Phase 1 complete.** Scaffolded Vite + React + TS + Pixi v8 + Zustand. Production build green
+  (750 modules, ~120 KB gzip main). Deploy workflow switched to `npm run build` → `dist/`; built app
+  verified live at https://ryanmathewson.github.io/RobotGame/ (index + hashed JS bundle both HTTP 200).
+  Created this tracking doc. **Next: Phase 2 — ECS-lite model, then the robot VM.**
