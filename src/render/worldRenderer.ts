@@ -19,6 +19,7 @@ export class WorldRenderer {
   private targetMarker = new Graphics();
   private robots = new Container();
   private robotGfx = new Map<Entity, Graphics>();
+  private cargoFx = new Graphics();
   private vmFx = new Graphics();
 
   constructor(
@@ -32,17 +33,20 @@ export class WorldRenderer {
       this.miningFx,
       this.targetMarker,
       this.robots,
+      this.cargoFx,
       this.vmFx,
     );
     this.app.stage.addChild(this.root);
     this.drawGrid(world);
   }
 
-  /** Convert a global (canvas) pixel coordinate into continuous tile coords. */
+  /** Convert a global (canvas) pixel coordinate into continuous tile coords.
+   *  Accounts for the fit-to-screen scale applied to the root container. */
   screenToTile(globalX: number, globalY: number): Vec2 {
+    const s = this.root.scale.x || 1;
     return {
-      x: (globalX - this.root.position.x) / TILE,
-      y: (globalY - this.root.position.y) / TILE,
+      x: (globalX - this.root.position.x) / (TILE * s),
+      y: (globalY - this.root.position.y) / (TILE * s),
     };
   }
 
@@ -61,13 +65,22 @@ export class WorldRenderer {
     this.grid.stroke({ color: 0x1d2c3a, width: 1 });
   }
 
-  /** Per-frame: center the world and redraw dynamic layers. */
+  /** Per-frame: fit + center the world and redraw dynamic layers. */
   draw(world: World, selected: Entity | null = null): void {
     const cw = this.app.renderer.width;
     const ch = this.app.renderer.height;
+    // Scale the whole world to fit the viewport (so a large map stays fully
+    // visible on any window). Capped so small worlds don't over-zoom.
+    const margin = 24;
+    const scale = Math.min(
+      (cw - margin) / (world.width * TILE),
+      (ch - margin) / (world.height * TILE),
+      1.4,
+    );
+    this.root.scale.set(scale);
     this.root.position.set(
-      Math.round((cw - world.width * TILE) / 2),
-      Math.round((ch - world.height * TILE) / 2),
+      Math.round((cw - world.width * TILE * scale) / 2),
+      Math.round((ch - world.height * TILE * scale) / 2),
     );
 
     this.drawBuildings(world);
@@ -75,6 +88,7 @@ export class WorldRenderer {
     this.drawMiningFx(world);
     this.drawTargets(world);
     this.drawRobots(world);
+    this.drawCargoBars(world);
     this.drawVmStatus(world, selected);
   }
 
@@ -209,6 +223,30 @@ export class WorldRenderer {
       if (!world.movement.has(e)) {
         g.destroy();
         this.robotGfx.delete(e);
+      }
+    }
+  }
+
+  /** A cargo fill bar under each robot, so you can read how loaded it is. */
+  private drawCargoBars(world: World): void {
+    this.cargoFx.clear();
+    for (const e of world.cargo.keys()) {
+      const cargo = world.cargo.get(e)!;
+      const tf = world.transform.get(e);
+      if (!tf || cargo.capacity <= 0) continue;
+      const used = cargoUsed(cargo);
+      const frac = Math.min(1, used / cargo.capacity);
+      const w = TILE * 0.72;
+      const h = 4;
+      const x = tf.pos.x * TILE - w / 2;
+      const y = tf.pos.y * TILE + TILE * 0.34;
+      this.cargoFx
+        .roundRect(x, y, w, h, 2)
+        .fill({ color: 0x0a0f15, alpha: 0.85 })
+        .stroke({ color: 0x2a3340, width: 1 });
+      if (frac > 0) {
+        const full = used >= cargo.capacity - 1e-6;
+        this.cargoFx.roundRect(x, y, w * frac, h, 2).fill({ color: full ? 0xff7f7f : 0xffd27f });
       }
     }
   }

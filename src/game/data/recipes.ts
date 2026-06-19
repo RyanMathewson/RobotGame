@@ -13,10 +13,13 @@ export interface RefineRecipe {
   seconds: number;
 }
 
+// Refining is deliberately raw-hungry: a refined unit costs ~100 raw, so mining
+// (fast & abundant) feeds a refinery that is the real throughput bottleneck. This
+// makes refined goods feel earned rather than a 1:1 reformatting of ore.
 export const REFINE_RECIPES: RefineRecipe[] = [
-  { input: 'iron', inputQty: 2, output: 'iron_ingot', outputQty: 1, seconds: 2 },
-  { input: 'scrap', inputQty: 3, output: 'carbon', outputQty: 1, seconds: 2 },
-  { input: 'silica', inputQty: 2, output: 'glass', outputQty: 1, seconds: 2 },
+  { input: 'iron', inputQty: 100, output: 'iron_ingot', outputQty: 1, seconds: 2 },
+  { input: 'scrap', inputQty: 100, output: 'carbon', outputQty: 1, seconds: 2 },
+  { input: 'silica', inputQty: 100, output: 'glass', outputQty: 1, seconds: 2 },
 ];
 
 export function refineRecipeFor(input: ItemKind): RefineRecipe | undefined {
@@ -45,7 +48,7 @@ export const ASSEMBLE_RECIPES: AssembleRecipe[] = [
     id: 'worker_mk1',
     label: 'Worker Mk1',
     inputs: { iron_ingot: 5, carbon: 2 },
-    output: { kind: 'robot', label: 'Worker Mk1', speed: 3.5, cargo: 25 },
+    output: { kind: 'robot', label: 'Worker Mk1', speed: 3.5, cargo: 100 },
     seconds: 6,
   },
 ];

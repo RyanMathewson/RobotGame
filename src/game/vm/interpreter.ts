@@ -13,7 +13,7 @@
 //    (no Math.random, fixed iteration order) — Pillar 2 / offline-sim tractable.
 
 import type { World, Entity } from '../sim/world';
-import type { Vec2, RawKind } from '../sim/components';
+import type { Vec2, RawKind, ItemMap } from '../sim/components';
 import { cargoUsed } from '../sim/components';
 import { compileProgram, type Instr } from './compiler';
 import type { BlockProgram, TargetExpr, Cond } from './ast';
@@ -49,6 +49,10 @@ export interface RobotDebug {
   /** path key of the block at the program counter, or null (e.g. at HALT) */
   currentBlockKey: string | null;
   energyPct: number | null;
+  cargoUsed: number;
+  cargoCapacity: number;
+  /** carried items by kind, for the inventory readout */
+  cargo: ItemMap;
 }
 
 /** Default battery + a placeholder passive recharge. Real charging (pads/grid)
@@ -78,6 +82,7 @@ export function robotDebugInfo(world: World, e: Entity): RobotDebug | null {
   if (!vm) return null;
   const instr = vm.pc >= 0 && vm.pc < vm.code.length ? vm.code[vm.pc] : undefined;
   const energy = world.energy.get(e);
+  const cargo = world.cargo.get(e);
   return {
     status: vm.status,
     pc: vm.pc,
@@ -85,6 +90,9 @@ export function robotDebugInfo(world: World, e: Entity): RobotDebug | null {
     currentOp: instr ? instr.op : null,
     currentBlockKey: instr ? pathKey(instr.src) : null,
     energyPct: energy ? Math.round((energy.current / energy.max) * 100) : null,
+    cargoUsed: cargo ? cargoUsed(cargo) : 0,
+    cargoCapacity: cargo ? cargo.capacity : 0,
+    cargo: cargo ? { ...cargo.items } : {},
   };
 }
 

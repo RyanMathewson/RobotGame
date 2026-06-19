@@ -6,7 +6,8 @@
 import { useEffect, useState } from 'react';
 import { useHud } from './store';
 import type { BlockProgram, Stmt, TargetExpr, Cond } from '../game/vm/ast';
-import type { RawKind } from '../game/sim/components';
+import type { RawKind, ItemKind, ItemMap } from '../game/sim/components';
+import { ITEMS } from '../game/data/resources';
 import type { Step } from '../game/vm/source';
 import { pathKey } from '../game/vm/source';
 import { insertStmt, removeStmt, moveStmt, replaceStmt, newStmt, type StmtKind } from './programEdit';
@@ -69,6 +70,14 @@ function uiToCond(base: string, negated: boolean): Cond {
     inner = { kind: 'exists', target: of === 'any' ? { kind: 'nearestNode' } : { kind: 'nearestNode', of: of as RawKind } };
   }
   return negated ? { kind: 'not', of: inner } : inner;
+}
+
+/** "iron 60 · scrap 25" for a robot's carried items (empty string if none). */
+function cargoContents(items: ItemMap): string {
+  return (Object.entries(items) as Array<[ItemKind, number]>)
+    .filter(([, q]) => (q ?? 0) >= 1)
+    .map(([k, q]) => `${ITEMS[k].label} ${Math.floor(q)}`)
+    .join(' · ');
 }
 
 interface EditCtx {
@@ -298,6 +307,10 @@ export function ProgramEditor() {
               op {debug.currentOp ?? '—'} · pc {debug.pc}/{debug.codeLen}
             </span>
             {debug.energyPct !== null && <span className="pe-dim">⚡ {debug.energyPct}%</span>}
+            <span className="pe-dim">
+              📦 {Math.floor(debug.cargoUsed)}/{debug.cargoCapacity}
+            </span>
+            {cargoContents(debug.cargo) && <span className="pe-dim">{cargoContents(debug.cargo)}</span>}
           </>
         ) : (
           <span className="pe-dim">robot unavailable</span>

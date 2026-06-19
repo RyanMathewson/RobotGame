@@ -48,7 +48,9 @@
 
 **World & sim**
 - [x] ECS-lite entity model (typed component stores: `transform`/`movement`/`resourceNode` + `player` tag)
-- [ ] Tile world + camera (pan/zoom) — *deferred; fixed centered view for now*
+- [~] Tile world + camera — view now **auto-fits any window** (root container scaled to fit, so a large
+      map stays fully visible/reachable); full **pan/zoom camera still deferred** for worlds bigger than
+      fit at a readable zoom
 - [x] Player-controlled robot (click-to-move + WASD/arrows; input modeled as data consumed by the sim)
 - [x] Resource nodes with mining: click a node → robot walks over & auto-mines on arrival, continuing
       until interrupted (move/WASD) or node exhausted; **full cargo pauses (robot shows "blocked" + a
@@ -279,3 +281,18 @@
 - **Remaining before "1.0 of the slice":** play-test for *fun* (the MVP's actual purpose), then Alpha
   (full control flow, variables, real energy grid, tech tree). Deferred from MVP by design: tile world +
   camera pan/zoom, PWA/offline.
+
+### 2026-06-19 (cont.) — Play-test balance pass (live)
+First live play-test surfaced two issues: refined goods accrued too easily (near-1:1), and the loop ended
+quickly (small map, few deposits). Batch of tuning + small features:
+- **Economy:** refining is now **100 raw → 1 refined** (was 2:1/3:1) so refined goods are earned and the
+  refinery — not mining — is the throughput bottleneck. Node deposits **200 → 2000** (required, else total
+  iron < one robot's cost). **Worker Mk1 cargo 25 → 100** so a full haul = exactly one refinery batch.
+- **More world:** map **28×18 → 52×32**; the renderer now **auto-fits the view to the window** (root
+  container scaled, click→tile inverse adjusted) so the larger map stays fully visible/reachable without a
+  camera. **Deposits 5 → 20** (~40k raw total), placed by a **deterministic** PRNG scatter (iron-weighted,
+  spaced out, clear of the build cluster) plus 3 starter nodes near spawn.
+- **Inventory visualization:** a cargo fill bar under every robot (fills by load, red when full) + a
+  `📦 used/capacity` + item breakdown line in the editor's debug strip (`RobotDebug` gains cargo fields).
+- **Verified headlessly:** world gen = 20 nodes / 40k raw, no overlaps/out-of-bounds/cluster collisions;
+  VM determinism + save round-trip still **PASS**. `npm run build` green. Pushed live.

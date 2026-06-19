@@ -145,8 +145,8 @@ export function nextRandom(world: World): number {
 export function createWorld(): World {
   const world: World = {
     tick: 0,
-    width: 28,
-    height: 18,
+    width: 52,
+    height: 32,
     rngState: 0x1a2b3c4d,
     nextEntity: 1,
     stockpile: {},
@@ -163,33 +163,54 @@ export function createWorld(): World {
     player: new Set(),
   };
 
-  // Scenery + first minable deposits.
-  const nodeSpecs: Array<[RawKind, number, number]> = [
-    ['iron', 5, 4],
-    ['iron', 22, 13],
-    ['scrap', 9, 12],
-    ['scrap', 20, 5],
-    ['silica', 25, 9],
-  ];
-  for (const [kind, x, y] of nodeSpecs) {
-    spawnNode(world, { x, y }, kind, NODE_START_AMOUNT);
-  }
+  // Central production cluster.
+  spawnRefinery(world, { x: 24, y: 15 }, 2);
+  spawnAssembler(world, { x: 28, y: 15 }, 2);
+  spawnRobot(world, { x: 26, y: 20 }, { player: true, cargoCapacity: 300 });
 
-  // The central Refinery (2x2). Robots haul raw resources here to refine them.
-  spawnRefinery(world, { x: 13, y: 8 }, 2);
+  // A few starter deposits within easy reach of the cluster, one of each kind...
+  spawnNode(world, { x: 20, y: 19 }, 'iron', NODE_START_AMOUNT);
+  spawnNode(world, { x: 33, y: 19 }, 'scrap', NODE_START_AMOUNT);
+  spawnNode(world, { x: 26, y: 26 }, 'silica', NODE_START_AMOUNT);
 
-  // The Assembler (2x2), just east of the refinery. Builds parts/robots from
-  // refined materials drawn out of the colony stockpile.
-  spawnAssembler(world, { x: 18, y: 8 }, 2);
-
-  // The player's robot, parked near center until commanded.
-  spawnRobot(world, { x: 9, y: 9 }, { player: true, cargoCapacity: 300 });
+  // ...and many more scattered across the map so the loop runs for a long time.
+  scatterNodes(world, 17);
 
   return world;
 }
 
-/** Starting units in a fresh deposit (also the renderer's "full" reference). */
-export const NODE_START_AMOUNT = 200;
+/** Deterministically scatter resource nodes across open ground — avoids the
+ *  central build cluster, the map edges, and clustering on existing nodes. Uses
+ *  the world PRNG only (no Math.random), so the map is the same every run. */
+function scatterNodes(world: World, count: number): void {
+  const margin = 3;
+  let placed = 0;
+  for (let attempt = 0; attempt < count * 50 && placed < count; attempt++) {
+    const x = margin + Math.floor(nextRandom(world) * (world.width - margin * 2));
+    const y = margin + Math.floor(nextRandom(world) * (world.height - margin * 2));
+    if (x >= 21 && x <= 31 && y >= 13 && y <= 22) continue; // keep the cluster clear
+    if (nearAnyNode(world, x, y, 3)) continue; // don't bunch deposits together
+    const r = nextRandom(world);
+    const kind: RawKind = r < 0.5 ? 'iron' : r < 0.8 ? 'scrap' : 'silica'; // iron-weighted
+    spawnNode(world, { x, y }, kind, NODE_START_AMOUNT);
+    placed++;
+  }
+}
+
+/** Whether any existing node sits within `min` tiles (Chebyshev) of (x, y). */
+function nearAnyNode(world: World, x: number, y: number, min: number): boolean {
+  for (const id of world.resourceNode.keys()) {
+    const tf = world.transform.get(id);
+    if (tf && Math.abs(tf.pos.x - x) < min && Math.abs(tf.pos.y - y) < min) return true;
+  }
+  return false;
+}
+
+/** Starting units in a fresh deposit (also the renderer's "full" reference).
+ *  Sized for the raw-hungry refinery (≈100 raw per refined unit, see recipes):
+ *  one node ≈ 20 refined units, so a deposit supports several builds before it
+ *  depletes — keeping ore plentiful while refined goods stay the real currency. */
+export const NODE_START_AMOUNT = 2000;
 
 // --- Tick orchestrator -------------------------------------------------------
 /** Advance the world by `dt` seconds, applying this frame's input. */
