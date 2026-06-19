@@ -5,24 +5,35 @@ import type { World, Entity } from '../game/sim/world';
 import { NODE_START_AMOUNT } from '../game/sim/world';
 import type { Vec2 } from '../game/sim/components';
 import { cargoUsed } from '../game/sim/components';
-import { RESOURCES } from '../game/data/resources';
+import { ITEMS } from '../game/data/resources';
+import { refineRecipeFor, assembleRecipeFor } from '../game/data/recipes';
 
 const TILE = 34;
 
 export class WorldRenderer {
   private root = new Container();
   private grid = new Graphics();
+  private buildings = new Graphics();
   private nodes = new Graphics();
   private miningFx = new Graphics();
   private targetMarker = new Graphics();
   private robots = new Container();
   private robotGfx = new Map<Entity, Graphics>();
+  private vmFx = new Graphics();
 
   constructor(
     private app: Application,
     world: World,
   ) {
-    this.root.addChild(this.grid, this.nodes, this.miningFx, this.targetMarker, this.robots);
+    this.root.addChild(
+      this.grid,
+      this.buildings,
+      this.nodes,
+      this.miningFx,
+      this.targetMarker,
+      this.robots,
+      this.vmFx,
+    );
     this.app.stage.addChild(this.root);
     this.drawGrid(world);
   }
@@ -51,7 +62,7 @@ export class WorldRenderer {
   }
 
   /** Per-frame: center the world and redraw dynamic layers. */
-  draw(world: World): void {
+  draw(world: World, selected: Entity | null = null): void {
     const cw = this.app.renderer.width;
     const ch = this.app.renderer.height;
     this.root.position.set(
@@ -59,10 +70,68 @@ export class WorldRenderer {
       Math.round((ch - world.height * TILE) / 2),
     );
 
+    this.drawBuildings(world);
     this.drawNodes(world);
     this.drawMiningFx(world);
     this.drawTargets(world);
     this.drawRobots(world);
+    this.drawVmStatus(world, selected);
+  }
+
+  /** Refinery + Assembler buildings, each with a progress bar while working. */
+  private drawBuildings(world: World): void {
+    this.buildings.clear();
+
+    for (const e of world.refinery.keys()) {
+      const r = world.refinery.get(e)!;
+      const tf = world.transform.get(e);
+      if (!tf) continue;
+      const box = this.machineBox(tf.pos.x, tf.pos.y, r.size, 0x2a3340, 0x55708a);
+      // "gear" glyph to read as a refining machine.
+      this.buildings.circle(box.cx, box.y + box.h * 0.42, TILE * 0.26).stroke({ color: 0x9fc3e0, width: 3 });
+      const recipe = r.activeInput ? refineRecipeFor(r.activeInput) : undefined;
+      this.progressBar(box, recipe ? Math.min(1, r.progress / recipe.seconds) : 0, 0xffd27f);
+    }
+
+    for (const e of world.assembler.keys()) {
+      const a = world.assembler.get(e)!;
+      const tf = world.transform.get(e);
+      if (!tf) continue;
+      const box = this.machineBox(tf.pos.x, tf.pos.y, a.size, 0x2f3a31, 0x6fae8c);
+      // Small "robot" glyph (chassis + two eyes) to read as an assembler.
+      const gs = TILE * 0.42;
+      this.buildings
+        .roundRect(box.cx - gs / 2, box.y + box.h * 0.42 - gs / 2, gs, gs, 4)
+        .stroke({ color: 0xbfe8d0, width: 3 });
+      this.buildings
+        .circle(box.cx - gs * 0.18, box.y + box.h * 0.42 - gs * 0.12, 1.8)
+        .circle(box.cx + gs * 0.18, box.y + box.h * 0.42 - gs * 0.12, 1.8)
+        .fill({ color: 0xbfe8d0 });
+      const recipe = a.active ? assembleRecipeFor(a.active) : undefined;
+      this.progressBar(box, recipe ? Math.min(1, a.progress / recipe.seconds) : 0, 0x8fe6b0);
+    }
+  }
+
+  /** Draw a machine's body and return geometry for glyph/bar placement. */
+  private machineBox(tileX: number, tileY: number, size: number, fill: number, stroke: number) {
+    const x = tileX * TILE;
+    const y = tileY * TILE;
+    const w = size * TILE;
+    const h = size * TILE;
+    this.buildings
+      .roundRect(x + 2, y + 2, w - 4, h - 4, 6)
+      .fill({ color: fill })
+      .stroke({ color: stroke, width: 2 });
+    return { x, y, w, h, cx: x + w / 2 };
+  }
+
+  /** A progress bar along the bottom of a machine box (hidden when frac is 0). */
+  private progressBar(box: { x: number; y: number; w: number; h: number }, frac: number, color: number): void {
+    const barX = box.x + 6;
+    const barY = box.y + box.h - 11;
+    const barW = box.w - 12;
+    this.buildings.rect(barX, barY, barW, 5).fill({ color: 0x10171f });
+    if (frac > 0) this.buildings.rect(barX, barY, barW * frac, 5).fill({ color });
   }
 
   /** Deposits shrink as they deplete and vanish when removed from the store. */
@@ -78,7 +147,7 @@ export class WorldRenderer {
       const cy = (tf.pos.y + 0.5) * TILE;
       this.nodes
         .circle(cx, cy, r)
-        .fill({ color: RESOURCES[node.kind].color })
+        .fill({ color: ITEMS[node.kind].color })
         .stroke({ color: 0x0a0f15, width: 2 });
     }
   }
@@ -134,6 +203,39 @@ export class WorldRenderer {
         this.robotGfx.set(e, g);
       }
       g.position.set(tf.pos.x * TILE, tf.pos.y * TILE);
+    }
+    // Prune graphics for robots that no longer exist (e.g. after loading a save).
+    for (const [e, g] of this.robotGfx) {
+      if (!world.movement.has(e)) {
+        g.destroy();
+        this.robotGfx.delete(e);
+      }
+    }
+  }
+
+  /** A status pip above each autonomous robot + a ring around the selected one. */
+  private drawVmStatus(world: World, selected: Entity | null): void {
+    this.vmFx.clear();
+    for (const e of world.vm.keys()) {
+      const vm = world.vm.get(e)!;
+      const tf = world.transform.get(e);
+      if (!tf) continue;
+      const cx = tf.pos.x * TILE;
+      const cy = tf.pos.y * TILE;
+
+      if (e === selected) {
+        this.vmFx.circle(cx, cy, TILE * 0.5).stroke({ color: 0xeaf6ff, width: 2, alpha: 0.9 });
+      }
+
+      const color =
+        vm.status === 'running'
+          ? 0x8fe6b0
+          : vm.status === 'blocked'
+            ? 0xffcf7f
+            : vm.status === 'error'
+              ? 0xff7f7f
+              : 0x9aa6b2;
+      this.vmFx.circle(cx, cy - TILE * 0.46, 3.5).fill({ color }).stroke({ color: 0x0a0f15, width: 1 });
     }
   }
 

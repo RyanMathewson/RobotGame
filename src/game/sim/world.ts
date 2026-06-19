@@ -13,12 +13,27 @@ import type {
   Transform,
   Movement,
   ResourceNode,
-  ResourceKind,
+  RawKind,
   Cargo,
   Mining,
+  DepositOrder,
+  Refinery,
+  Assembler,
+  Energy,
+  ItemMap,
 } from './components';
 import type { FrameInput } from './input';
-import { applyInput, movementSystem, miningSystem } from './systems';
+import {
+  applyInput,
+  movementSystem,
+  miningSystem,
+  depositSystem,
+  refinerySystem,
+  assemblerSystem,
+} from './systems';
+import type { BlockProgram } from '../vm/ast';
+import type { Vm } from '../vm/interpreter';
+import { createVm, vmSystem, energySystem, ENERGY_MAX } from '../vm/interpreter';
 
 export type Entity = number;
 
@@ -35,12 +50,20 @@ export interface World {
   /** next entity id to hand out */
   nextEntity: Entity;
 
+  /** colony-wide refined-goods inventory (Refinery fills it, Assembler draws from it) */
+  stockpile: ItemMap;
+
   // Component stores.
   transform: Store<Transform>;
   movement: Store<Movement>;
   resourceNode: Store<ResourceNode>;
   cargo: Store<Cargo>;
   mining: Store<Mining>;
+  depositOrder: Store<DepositOrder>;
+  refinery: Store<Refinery>;
+  assembler: Store<Assembler>;
+  vm: Store<Vm>;
+  energy: Store<Energy>;
   /** tag set: entities under direct player control */
   player: Set<Entity>;
 }
@@ -56,23 +79,53 @@ export function destroyEntity(world: World, e: Entity): void {
   world.resourceNode.delete(e);
   world.cargo.delete(e);
   world.mining.delete(e);
+  world.depositOrder.delete(e);
+  world.refinery.delete(e);
+  world.assembler.delete(e);
+  world.vm.delete(e);
+  world.energy.delete(e);
   world.player.delete(e);
+}
+
+export function spawnRefinery(world: World, pos: Vec2, size = 2): Entity {
+  const e = createEntity(world);
+  world.transform.set(e, { pos: { ...pos } });
+  world.refinery.set(e, { input: {}, activeInput: null, progress: 0, size });
+  return e;
+}
+
+export function spawnAssembler(world: World, pos: Vec2, size = 2): Entity {
+  const e = createEntity(world);
+  world.transform.set(e, { pos: { ...pos } });
+  world.assembler.set(e, { queue: [], active: null, progress: 0, size });
+  return e;
 }
 
 export function spawnRobot(
   world: World,
   pos: Vec2,
-  opts: { player?: boolean; speed?: number; cargoCapacity?: number } = {},
+  opts: {
+    player?: boolean;
+    speed?: number;
+    cargoCapacity?: number;
+    /** a program makes the robot autonomous: it gets a VM + a battery */
+    program?: BlockProgram;
+    cyclesPerTick?: number;
+  } = {},
 ): Entity {
   const e = createEntity(world);
   world.transform.set(e, { pos: { ...pos } });
   world.movement.set(e, { target: null, speed: opts.speed ?? 3.5 });
   if (opts.cargoCapacity) world.cargo.set(e, { capacity: opts.cargoCapacity, items: {} });
+  if (opts.program) {
+    world.vm.set(e, createVm(opts.program, opts.cyclesPerTick));
+    world.energy.set(e, { current: ENERGY_MAX, max: ENERGY_MAX });
+  }
   if (opts.player) world.player.add(e);
   return e;
 }
 
-export function spawnNode(world: World, pos: Vec2, kind: ResourceKind, amount: number): Entity {
+export function spawnNode(world: World, pos: Vec2, kind: RawKind, amount: number): Entity {
   const e = createEntity(world);
   world.transform.set(e, { pos: { ...pos } });
   world.resourceNode.set(e, { kind, amount });
@@ -96,28 +149,41 @@ export function createWorld(): World {
     height: 18,
     rngState: 0x1a2b3c4d,
     nextEntity: 1,
+    stockpile: {},
     transform: new Map(),
     movement: new Map(),
     resourceNode: new Map(),
     cargo: new Map(),
     mining: new Map(),
+    depositOrder: new Map(),
+    refinery: new Map(),
+    assembler: new Map(),
+    vm: new Map(),
+    energy: new Map(),
     player: new Set(),
   };
 
   // Scenery + first minable deposits.
-  const nodeSpecs: Array<[ResourceKind, number, number]> = [
+  const nodeSpecs: Array<[RawKind, number, number]> = [
     ['iron', 5, 4],
     ['iron', 22, 13],
     ['scrap', 9, 12],
     ['scrap', 20, 5],
-    ['silica', 14, 9],
+    ['silica', 25, 9],
   ];
   for (const [kind, x, y] of nodeSpecs) {
     spawnNode(world, { x, y }, kind, NODE_START_AMOUNT);
   }
 
-  // The player's robot, parked at center until commanded.
-  spawnRobot(world, { x: world.width / 2, y: world.height / 2 }, { player: true, cargoCapacity: 300 });
+  // The central Refinery (2x2). Robots haul raw resources here to refine them.
+  spawnRefinery(world, { x: 13, y: 8 }, 2);
+
+  // The Assembler (2x2), just east of the refinery. Builds parts/robots from
+  // refined materials drawn out of the colony stockpile.
+  spawnAssembler(world, { x: 18, y: 8 }, 2);
+
+  // The player's robot, parked near center until commanded.
+  spawnRobot(world, { x: 9, y: 9 }, { player: true, cargoCapacity: 300 });
 
   return world;
 }
@@ -130,6 +196,11 @@ export const NODE_START_AMOUNT = 200;
 export function tickWorld(world: World, dt: number, input: FrameInput): void {
   world.tick++;
   applyInput(world, input);
-  movementSystem(world, dt, input);
+  vmSystem(world, dt); // programmed robots set their action components...
+  movementSystem(world, dt, input); // ...then the action systems carry them out
   miningSystem(world, dt);
+  depositSystem(world);
+  refinerySystem(world, dt);
+  assemblerSystem(world, dt);
+  energySystem(world, dt);
 }

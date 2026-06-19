@@ -97,6 +97,66 @@ body {
   font-weight: 400;
 }
 
+.hud-section {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.hud-section-head {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.hud-section-body {
+  margin-top: 3px;
+  font-size: 0.8rem;
+  color: #d9e2ec;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-build {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hud-build-btn {
+  pointer-events: auto; /* .hud disables pointer events; re-enable for controls */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: left;
+  background: rgba(45, 70, 56, 0.7);
+  border: 1px solid #3f6b51;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.hud-build-btn:hover:not(:disabled) {
+  background: rgba(60, 92, 73, 0.85);
+  border-color: #5b9a72;
+}
+
+.hud-build-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.hud-build-cost {
+  font-size: 0.66rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 .hud-note {
   margin: 12px 0 0;
   max-width: 240px;
@@ -129,4 +189,414 @@ body {
 
 .toast-icon {
   font-size: 0.95rem;
+}
+
+/* --- Program editor (right-side panel) ------------------------------------ */
+.pe {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  overflow: hidden;
+}
+
+.pe-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pe-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.pe-x {
+  pointer-events: auto;
+  width: 24px;
+  height: 24px;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.pe-x:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.pe-debug {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.pe-status {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.pe-status-running {
+  color: #0c1f16;
+  background: #8fe6b0;
+}
+.pe-status-blocked {
+  color: #2a1c06;
+  background: #ffcf7f;
+}
+.pe-status-error {
+  color: #2a0a0a;
+  background: #ff7f7f;
+}
+.pe-status-done {
+  color: #d9e2ec;
+  background: #2a3340;
+}
+
+.pe-dim {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pe-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+}
+
+.pe-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* nested lists (loop body, if branches) get an indent + guide line */
+.pe-block .pe-list {
+  margin: 4px 0 4px 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+
+.pe-block {
+  border: 1px solid var(--border);
+  border-left: 3px solid #55708a;
+  border-radius: 7px;
+  background: rgba(20, 32, 44, 0.6);
+  padding: 6px 8px;
+}
+.pe-loop {
+  border-left-color: #c79bf0;
+}
+.pe-if {
+  border-left-color: #ffd27f;
+}
+.pe-mine {
+  border-left-color: #8fe6b0;
+}
+.pe-deposit {
+  border-left-color: #7fd1ff;
+}
+.pe-active {
+  background: rgba(143, 230, 176, 0.14);
+  box-shadow: 0 0 0 1px #8fe6b0 inset;
+}
+
+.pe-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.pe-op {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pe-param,
+.pe-add {
+  font: inherit;
+  font-size: 0.74rem;
+  color: var(--text);
+  background: #0e1a24;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 4px;
+}
+.pe-param input[type='number'] {
+  width: 46px;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  text-align: right;
+}
+.pe-not {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+  color: var(--muted);
+}
+.pe-static {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.pe-ctrls {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+}
+.pe-ctrls button {
+  width: 20px;
+  height: 20px;
+  font-size: 0.72rem;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pe-ctrls button:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.pe-ctrls button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pe-branch {
+  margin: 2px 0 0 2px;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.pe-add {
+  align-self: flex-start;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.pe-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+.pe-actions button {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 6px 12px;
+  background: rgba(45, 70, 56, 0.7);
+  border: 1px solid #3f6b51;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.pe-actions button:hover:not(:disabled) {
+  background: rgba(60, 92, 73, 0.85);
+}
+.pe-run {
+  background: rgba(45, 90, 64, 0.85) !important;
+}
+.pe-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.pe-hint {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+/* --- Save / load toolbar (bottom-left) ------------------------------------ */
+.save {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+}
+
+.save button {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 5px 11px;
+  background: rgba(20, 32, 44, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.save button:hover {
+  border-color: var(--accent);
+  background: rgba(30, 48, 64, 0.85);
+}
+
+.save-status {
+  margin-left: 4px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #8fe6b0;
+}
+
+/* --- Onboarding (FORGE) ---------------------------------------------------- */
+.ob {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 32px));
+  padding: 14px 16px;
+  background: rgba(12, 22, 32, 0.92);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+.ob-complete {
+  border-color: #8fe6b0;
+}
+
+.ob-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.ob-complete .ob-who {
+  color: #8fe6b0;
+}
+.ob-avatar {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.ob-title {
+  margin-top: 6px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.ob-body {
+  margin: 5px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: #cdd9e5;
+}
+
+.ob-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+.ob-dim {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ob-skip {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 0.74rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.ob-skip:hover {
+  color: var(--text);
+}
+.ob-next {
+  pointer-events: auto;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0c1f16;
+  background: #8fe6b0;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+
+.ob-replay {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  pointer-events: auto;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.ob-replay:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* Pulsing highlight for a control the tutorial is pointing at. */
+.hud-build-btn--hint {
+  animation: hint-pulse 1.2s ease-in-out infinite;
+  border-color: var(--accent) !important;
+}
+@keyframes hint-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(127, 209, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(127, 209, 255, 0.35);
+  }
 }
