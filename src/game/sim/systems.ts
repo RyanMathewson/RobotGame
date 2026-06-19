@@ -15,10 +15,10 @@ export const MINE_RATE = 25;
 // --- Input -> intent ---------------------------------------------------------
 /**
  * Resolve this frame's click into an action for each player robot:
- *  - clicked a node within MINING_RANGE -> start mining it
- *  - clicked a node out of range        -> walk toward it
- *  - clicked empty ground               -> move there
- * Movement always cancels any in-progress mining.
+ *  - clicked a node  -> order it to mine that node (walk over if needed;
+ *                       miningSystem starts extracting the moment it's in range)
+ *  - clicked ground  -> move there
+ * Movement (this, or WASD) always cancels any in-progress mining order.
  */
 export function applyInput(world: World, input: FrameInput): void {
   if (!input.clickTile) return;
@@ -32,13 +32,9 @@ export function applyInput(world: World, input: FrameInput): void {
 
     if (node !== null) {
       const c = nodeCenter(world, node);
-      if (distance(tf.pos, c) <= MINING_RANGE) {
-        world.mining.set(e, { nodeId: node });
-        mv.target = null; // mine in place
-      } else {
-        world.mining.delete(e);
-        mv.target = c; // approach the node
-      }
+      world.mining.set(e, { nodeId: node });
+      // Mine in place if already in range; otherwise head there and auto-mine on arrival.
+      mv.target = distance(tf.pos, c) <= MINING_RANGE ? null : c;
     } else {
       world.mining.delete(e);
       mv.target = { x: click.x, y: click.y };
@@ -103,11 +99,16 @@ export function miningSystem(world: World, dt: number): void {
       continue;
     }
 
-    // Must remain in range (a moving robot already had mining cancelled).
-    if (distance(tf.pos, nodeCenter(world, nodeId)) > MINING_RANGE + EPSILON) {
-      world.mining.delete(e);
+    const center = nodeCenter(world, nodeId);
+    const mv = world.movement.get(e);
+
+    // Still travelling to the node: keep heading there, extract nothing yet.
+    if (distance(tf.pos, center) > MINING_RANGE + EPSILON) {
+      if (mv && !mv.target) mv.target = center;
       continue;
     }
+    // In range: halt and extract.
+    if (mv) mv.target = null;
 
     const free = cargo.capacity - cargoUsed(cargo);
     const mined = Math.min(MINE_RATE * dt, node.amount, free);

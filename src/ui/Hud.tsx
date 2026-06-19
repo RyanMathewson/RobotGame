@@ -45,7 +45,7 @@ export function Hud() {
         </div>
       </dl>
       <p className="hud-note">
-        <strong>Click a nearby node</strong> to mine it (keeps going until you move) ·{' '}
+        <strong>Click a node</strong> to send the robot to mine it (until you move) ·{' '}
         <strong>click ground / WASD</strong> to move.
       </p>
     </div>

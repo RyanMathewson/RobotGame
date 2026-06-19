@@ -48,8 +48,9 @@
 - [x] ECS-lite entity model (typed component stores: `transform`/`movement`/`resourceNode` + `player` tag)
 - [ ] Tile world + camera (pan/zoom) — *deferred; fixed centered view for now*
 - [x] Player-controlled robot (click-to-move + WASD/arrows; input modeled as data consumed by the sim)
-- [x] Resource nodes with mining: click a nearby node to mine (until you move), `Cargo` component fills,
-      nodes deplete & despawn *(cheap on-pillar pressure probe, design §13.5.7)*
+- [x] Resource nodes with mining: click a node → robot walks over & auto-mines on arrival, continuing
+      until interrupted (move/WASD), node exhausted, or cargo full; nodes deplete & despawn
+      *(cheap on-pillar pressure probe, design §13.5.7)*
 
 **Production**
 - [ ] Data-driven recipes loader + schema (design §15.3)
@@ -116,4 +117,6 @@
   sim as a raw `clickTile`; the sim decides mine-vs-walk-vs-move (keeps all game logic deterministic).
   Clicking a node within range starts mining (continues until the player moves); cargo fills, nodes
   deplete/shrink and despawn at zero. Renderer shows a mining beam + pulsing ring and node depletion;
-  HUD shows cargo + status. Build green. *In-browser confirmation pending.*
+  HUD shows cargo + status. Build green. **In-browser confirmed.**
+- **Mining UX refined** (per user): a node click is now a *mine order* — robot walks over and auto-mines
+  on arrival (one click), continuing until interrupted. Build green.
