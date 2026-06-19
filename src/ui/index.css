@@ -239,13 +239,24 @@ body {
 }
 
 .pe-debug {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
   padding: 8px 12px;
   font-size: 0.72rem;
   border-bottom: 1px solid var(--border);
+}
+/* Two fixed rows so the strip never changes height as cargo fills/empties
+   (which would shove the block canvas below it up and down). */
+.pe-debug-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.pe-debug-cargo {
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pe-status {

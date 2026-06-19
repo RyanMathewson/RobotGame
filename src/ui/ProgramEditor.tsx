@@ -302,15 +302,17 @@ export function ProgramEditor() {
       <div className="pe-debug">
         {debug ? (
           <>
-            <span className={`pe-status pe-status-${debug.status}`}>{debug.status}</span>
-            <span className="pe-dim">
-              op {debug.currentOp ?? '—'} · pc {debug.pc}/{debug.codeLen}
-            </span>
-            {debug.energyPct !== null && <span className="pe-dim">⚡ {debug.energyPct}%</span>}
-            <span className="pe-dim">
+            <div className="pe-debug-row">
+              <span className={`pe-status pe-status-${debug.status}`}>{debug.status}</span>
+              <span className="pe-dim">
+                op {debug.currentOp ?? '—'} · pc {debug.pc}/{debug.codeLen}
+              </span>
+              {debug.energyPct !== null && <span className="pe-dim">⚡ {debug.energyPct}%</span>}
+            </div>
+            <div className="pe-debug-cargo pe-dim">
               📦 {Math.floor(debug.cargoUsed)}/{debug.cargoCapacity}
-            </span>
-            {cargoContents(debug.cargo) && <span className="pe-dim">{cargoContents(debug.cargo)}</span>}
+              {cargoContents(debug.cargo) ? ` · ${cargoContents(debug.cargo)}` : ''}
+            </div>
           </>
         ) : (
           <span className="pe-dim">robot unavailable</span>
