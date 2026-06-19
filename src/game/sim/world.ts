@@ -1,43 +1,73 @@
-// The simulation world: plain data + a deterministic tick function.
-// Kept free of any rendering concerns (design §15.2). In a later phase this
-// module moves into a Web Worker so the sim never blocks the UI thread.
+// The ECS world: entity ids + per-component stores + the tick orchestrator.
+//
+// Design notes (see CLAUDE.md):
+//  - This is the simulation. It holds NO rendering/DOM/React concerns.
+//  - State is plain & serializable (Maps of entity -> component; convert to
+//    arrays when we add save/load). Iteration order is insertion order, which
+//    keeps ticking deterministic.
+//  - Determinism: any randomness must come from `nextRandom(world)`, never
+//    `Math.random()`, so saves/replays/offline-sim reproduce exactly.
 
-export interface Vec2 {
-  x: number;
-  y: number;
-}
+import type { Vec2, Transform, Movement, ResourceNode, ResourceKind } from './components';
+import type { FrameInput } from './input';
+import { applyInput, movementSystem } from './systems';
 
-export type ResourceKind = 'iron' | 'scrap' | 'silica';
+export type Entity = number;
 
-export interface ResourceNode {
-  id: number;
-  pos: Vec2;
-  kind: ResourceKind;
-  amount: number;
-}
-
-export interface Robot {
-  id: number;
-  pos: Vec2;
-  target: Vec2;
-  /** tiles per second */
-  speed: number;
-}
+/** A component store: entity id -> component data. */
+export type Store<T> = Map<Entity, T>;
 
 export interface World {
-  /** width/height in tiles */
+  tick: number;
+  /** map size in tiles */
   width: number;
   height: number;
-  /** sim ticks elapsed */
-  tick: number;
-  robots: Robot[];
-  nodes: ResourceNode[];
-  /** deterministic PRNG state (so saves/replays reproduce exactly) */
+  /** deterministic PRNG state (mulberry32) */
   rngState: number;
+  /** next entity id to hand out */
+  nextEntity: Entity;
+
+  // Component stores.
+  transform: Store<Transform>;
+  movement: Store<Movement>;
+  resourceNode: Store<ResourceNode>;
+  /** tag set: entities under direct player control */
+  player: Set<Entity>;
+}
+
+// --- Entity management -------------------------------------------------------
+export function createEntity(world: World): Entity {
+  return world.nextEntity++;
+}
+
+export function destroyEntity(world: World, e: Entity): void {
+  world.transform.delete(e);
+  world.movement.delete(e);
+  world.resourceNode.delete(e);
+  world.player.delete(e);
+}
+
+export function spawnRobot(
+  world: World,
+  pos: Vec2,
+  opts: { player?: boolean; speed?: number } = {},
+): Entity {
+  const e = createEntity(world);
+  world.transform.set(e, { pos: { ...pos } });
+  world.movement.set(e, { target: null, speed: opts.speed ?? 3.5 });
+  if (opts.player) world.player.add(e);
+  return e;
+}
+
+export function spawnNode(world: World, pos: Vec2, kind: ResourceKind, amount: number): Entity {
+  const e = createEntity(world);
+  world.transform.set(e, { pos: { ...pos } });
+  world.resourceNode.set(e, { kind, amount });
+  return e;
 }
 
 // --- Deterministic PRNG (mulberry32) ----------------------------------------
-function nextRandom(world: World): number {
+export function nextRandom(world: World): number {
   world.rngState = (world.rngState + 0x6d2b79f5) | 0;
   let t = world.rngState;
   t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -45,25 +75,21 @@ function nextRandom(world: World): number {
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
-function randomTile(world: World): Vec2 {
-  return {
-    x: Math.floor(nextRandom(world) * world.width),
-    y: Math.floor(nextRandom(world) * world.height),
-  };
-}
-
 // --- World construction ------------------------------------------------------
 export function createWorld(): World {
   const world: World = {
+    tick: 0,
     width: 28,
     height: 18,
-    tick: 0,
-    robots: [],
-    nodes: [],
     rngState: 0x1a2b3c4d,
+    nextEntity: 1,
+    transform: new Map(),
+    movement: new Map(),
+    resourceNode: new Map(),
+    player: new Set(),
   };
 
-  // A handful of resource nodes to make the map read as a place.
+  // Scenery: a few deposits so the map reads as a place (mining lands next task).
   const nodeSpecs: Array<[ResourceKind, number, number]> = [
     ['iron', 5, 4],
     ['iron', 22, 13],
@@ -71,41 +97,20 @@ export function createWorld(): World {
     ['scrap', 20, 5],
     ['silica', 14, 9],
   ];
-  nodeSpecs.forEach(([kind, x, y], i) => {
-    world.nodes.push({ id: i, pos: { x, y }, kind, amount: 500 });
-  });
+  for (const [kind, x, y] of nodeSpecs) {
+    spawnNode(world, { x, y }, kind, 500);
+  }
 
-  // One robot at center with an initial wander target (placeholder behavior
-  // until the robot VM drives it — Phase 2).
-  world.robots.push({
-    id: 0,
-    pos: { x: world.width / 2, y: world.height / 2 },
-    target: randomTile(world),
-    speed: 3.5,
-  });
+  // The player's robot, parked at center until commanded.
+  spawnRobot(world, { x: world.width / 2, y: world.height / 2 }, { player: true });
 
   return world;
 }
 
-// --- Tick --------------------------------------------------------------------
-/** Advance the world by `dt` seconds. Deterministic given world state. */
-export function tickWorld(world: World, dt: number): void {
+// --- Tick orchestrator -------------------------------------------------------
+/** Advance the world by `dt` seconds, applying this frame's input. */
+export function tickWorld(world: World, dt: number, input: FrameInput): void {
   world.tick++;
-
-  for (const robot of world.robots) {
-    const dx = robot.target.x - robot.pos.x;
-    const dy = robot.target.y - robot.pos.y;
-    const dist = Math.hypot(dx, dy);
-    const step = robot.speed * dt;
-
-    if (dist <= step || dist === 0) {
-      // Arrived: snap and pick a new wander target.
-      robot.pos.x = robot.target.x;
-      robot.pos.y = robot.target.y;
-      robot.target = randomTile(world);
-    } else {
-      robot.pos.x += (dx / dist) * step;
-      robot.pos.y += (dy / dist) * step;
-    }
-  }
+  applyInput(world, input);
+  movementSystem(world, dt, input);
 }

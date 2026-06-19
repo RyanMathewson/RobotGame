@@ -12,9 +12,8 @@
 
 ## 🎯 Now / Next
 
-- **Now:** Phase 1 complete ✅ — scaffold builds & auto-deploys to Pages.
-- **Next:** Phase 2 — MVP vertical slice. Suggested order: ECS-lite entity model → player-controlled
-  robot + click-to-move → resource nodes & `Mine` → Refinery/Assembler (data-driven) → **robot VM**
+- **Now:** Phase 2 — ECS-lite model + player robot done ✅. Up next: resource mining.
+- **Next:** resource mining (`Mine` + depletion) → Refinery/Assembler (data-driven) → **robot VM**
   → Blockly editor → first autonomous miner (Milestone 1) → IndexedDB save/load.
 
 ---
@@ -45,9 +44,9 @@
 > Goal (design §17.1): mine → refine → build a robot → **program it to mine autonomously** → watch it run.
 
 **World & sim**
-- [ ] ECS-lite entity model (typed component stores)
-- [ ] Tile world + camera (pan/zoom)
-- [ ] Player-controlled robot (click-to-move / WASD)
+- [x] ECS-lite entity model (typed component stores: `transform`/`movement`/`resourceNode` + `player` tag)
+- [ ] Tile world + camera (pan/zoom) — *deferred; fixed centered view for now*
+- [x] Player-controlled robot (click-to-move + WASD/arrows; input modeled as data consumed by the sim)
 - [ ] Resource nodes (Iron, Scrap) with depletion *(cheap on-pillar pressure probe, design §13.5.7)*
 
 **Production**
@@ -106,3 +105,8 @@
   Created this tracking doc. **Next: Phase 2 — ECS-lite model, then the robot VM.**
 - Added `CLAUDE.md` capturing dev practices (layer boundaries, determinism rule, Pages constraints,
   build-as-correctness-gate, keep this tracker updated).
+- **Phase 2 started.** Converted the sim to an ECS-lite model (entity ids + component stores in
+  `sim/world.ts`, `sim/components.ts`; systems in `sim/systems.ts`). Added player input as data
+  (`sim/input.ts`) consumed by the sim, with **click-to-move + WASD/arrows** control. Renderer now
+  reads ECS stores, styles the player robot distinctly, and shows a destination marker; HUD shows
+  live robot position. Build green. *In-browser behavior to be confirmed via `npm run dev` / live URL.*

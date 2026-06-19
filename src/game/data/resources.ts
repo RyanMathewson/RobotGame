@@ -1,7 +1,7 @@
 // Data-driven content lives here (design §15.3). For the scaffold this is just
 // resource presentation metadata; recipes/modules/tech nodes join it in Phase 2.
 
-import type { ResourceKind } from '../sim/world';
+import type { ResourceKind } from '../sim/components';
 
 export interface ResourceDef {
   kind: ResourceKind;

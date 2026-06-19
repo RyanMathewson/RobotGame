@@ -2,8 +2,10 @@
 // from render framerate) so behavior is deterministic and frame-rate independent
 // (design §15.2). Rendering happens once per animation frame after stepping.
 
-import type { World } from './sim/world';
+import type { World, Entity } from './sim/world';
 import { tickWorld } from './sim/world';
+import type { Vec2 } from './sim/components';
+import type { FrameInput } from './sim/input';
 
 /** Simulation rate: 30 deterministic ticks per second. */
 const TICKS_PER_SECOND = 30;
@@ -26,9 +28,10 @@ export interface LoopStats {
   tick: number;
   fps: number;
   robotCount: number;
+  playerPos: Vec2 | null;
 }
 
-export function startGameLoop(world: World, cb: LoopCallbacks): LoopHandle {
+export function startGameLoop(world: World, input: FrameInput, cb: LoopCallbacks): LoopHandle {
   let raf = 0;
   let last = performance.now();
   let acc = 0;
@@ -43,7 +46,7 @@ export function startGameLoop(world: World, cb: LoopCallbacks): LoopHandle {
 
     acc += Math.min(delta, MAX_FRAME_MS);
     while (acc >= STEP_MS) {
-      tickWorld(world, STEP_MS / 1000);
+      tickWorld(world, STEP_MS / 1000, input);
       acc -= STEP_MS;
     }
 
@@ -54,7 +57,12 @@ export function startGameLoop(world: World, cb: LoopCallbacks): LoopHandle {
 
     if (cb.onStats && now - lastStatsAt >= 250) {
       lastStatsAt = now;
-      cb.onStats({ tick: world.tick, fps: Math.round(fps), robotCount: world.robots.length });
+      cb.onStats({
+        tick: world.tick,
+        fps: Math.round(fps),
+        robotCount: world.movement.size,
+        playerPos: playerPosition(world),
+      });
     }
 
     raf = requestAnimationFrame(frame);
@@ -62,4 +70,12 @@ export function startGameLoop(world: World, cb: LoopCallbacks): LoopHandle {
 
   raf = requestAnimationFrame(frame);
   return { stop: () => cancelAnimationFrame(raf) };
+}
+
+function playerPosition(world: World): Vec2 | null {
+  for (const e of world.player) {
+    const tf = world.transform.get(e as Entity);
+    if (tf) return tf.pos;
+  }
+  return null;
 }

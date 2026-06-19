@@ -7,6 +7,7 @@ export interface HudState {
   tick: number;
   fps: number;
   robotCount: number;
+  playerPos: { x: number; y: number } | null;
   set: (partial: Partial<Omit<HudState, 'set'>>) => void;
 }
 
@@ -14,5 +15,6 @@ export const useHud = create<HudState>((set) => ({
   tick: 0,
   fps: 0,
   robotCount: 0,
+  playerPos: null,
   set: (partial) => set(partial),
 }));

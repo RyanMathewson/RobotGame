@@ -7,6 +7,9 @@ export function Hud() {
   const tick = useHud((s) => s.tick);
   const fps = useHud((s) => s.fps);
   const robotCount = useHud((s) => s.robotCount);
+  const playerPos = useHud((s) => s.playerPos);
+
+  const posLabel = playerPos ? `${playerPos.x.toFixed(1)}, ${playerPos.y.toFixed(1)}` : '—';
 
   return (
     <div className="hud">
@@ -26,9 +29,13 @@ export function Hud() {
           <dt>Robots</dt>
           <dd>{robotCount}</dd>
         </div>
+        <div>
+          <dt>Robot pos</dt>
+          <dd>{posLabel}</dd>
+        </div>
       </dl>
       <p className="hud-note">
-        Fixed-timestep sim → Pixi render → React HUD. Next: the robot VM &amp; block editor.
+        <strong>Click</strong> to move the robot · <strong>WASD / arrows</strong> to drive it directly.
       </p>
     </div>
   );
