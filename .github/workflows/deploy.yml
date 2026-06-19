@@ -17,37 +17,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build # tsc --noEmit && vite build -> ./dist
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # ── NO BUILD STEP YET ─────────────────────────────────────────────
-      # We currently publish the static ./site folder directly so hosting
-      # is validated before any app code exists. When the Vite app is
-      # scaffolded, replace the publish path below and add a build, e.g.:
-      #
-      #   - uses: actions/setup-node@v4
-      #     with: { node-version: 22, cache: npm }
-      #   - run: npm ci
-      #   - run: npm run build            # outputs ./dist
-      #   - run: touch dist/.nojekyll
-      #
-      # ...then change `path: ./site` to `path: ./dist`.
-      # ──────────────────────────────────────────────────────────────────
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload static artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./site
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
