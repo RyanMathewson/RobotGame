@@ -104,3 +104,5 @@
   (750 modules, ~120 KB gzip main). Deploy workflow switched to `npm run build` → `dist/`; built app
   verified live at https://ryanmathewson.github.io/RobotGame/ (index + hashed JS bundle both HTTP 200).
   Created this tracking doc. **Next: Phase 2 — ECS-lite model, then the robot VM.**
+- Added `CLAUDE.md` capturing dev practices (layer boundaries, determinism rule, Pages constraints,
+  build-as-correctness-gate, keep this tracker updated).
