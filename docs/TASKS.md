@@ -109,4 +109,4 @@
   `sim/world.ts`, `sim/components.ts`; systems in `sim/systems.ts`). Added player input as data
   (`sim/input.ts`) consumed by the sim, with **click-to-move + WASD/arrows** control. Renderer now
   reads ECS stores, styles the player robot distinctly, and shows a destination marker; HUD shows
-  live robot position. Build green. *In-browser behavior to be confirmed via `npm run dev` / live URL.*
+  live robot position. Build green. **In-browser confirmed:** click-to-move and WASD/arrows both work.
